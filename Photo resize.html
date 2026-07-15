@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2D Soft · DL/NSDL + PDF Compressor</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+
+    <!-- PDF libraries for compression -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js">
+    </script>
+
+    <style>
+        /* ----- RESET ----- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f0f4fa;
+            padding: 20px;
+        }
+
+        .app-wrapper {
+            max-width: 1100px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .publish-directory-panel {
+            background: #ffffff;
+            border-radius: 28px;
+            padding: 20px 22px;
+            border: 1px solid #e6eef7;
+            box-shadow: 0 8px 30px rgba(0, 20, 40, 0.06);
+        }
+
+        .publish-directory-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            color: #12406b;
+        }
+
+        .publish-directory-header i {
+            font-size: 18px;
+            color: #2a7bb5;
+        }
+
+        .publish-directory-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .publish-directory-label {
+            display: block;
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: #1d4c77;
+            margin-bottom: 8px;
+        }
+
+        .publish-directory-input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid #d0dfec;
+            border-radius: 14px;
+            font-size: 0.96rem;
+            color: #1a2d3d;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .publish-directory-input:focus {
+            border-color: #2a7bb5;
+            box-shadow: 0 0 0 3px rgba(42, 123, 181, 0.12);
+        }
+
+        .publish-directory-hint {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #5a7a8a;
+        }
+
+        /* ----- SOFT CARD (2D) ----- */
+        .card-soft {
+            width: 100%;
+            background: #ffffff;
+            border-radius: 40px;
+            padding: 32px 36px 40px;
+            box-shadow: 0 8px 30px rgba(0, 20, 40, 0.08), 0 2px 8px rgba(0, 0, 0, 0.02);
+            border: 1px solid #eaf0f6;
+            transition: box-shadow 0.2s;
+        }
+
+        .card-soft:hover {
+            box-shadow: 0 12px 40px rgba(0, 20, 40, 0.10);
+        }
+
+        /* ----- HEADER ----- */
+        .header-soft {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px 24px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #eef3f8;
+        }
+
+        .title-soft {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .title-soft i {
+            font-size: 28px;
+            padding: 10px 14px;
+            border-radius: 20px;
+        }
+
+        .title-soft h1 {
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .badge-soft {
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* ----- INFO STRIP ----- */
+        .info-strip-soft {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 24px;
+            padding: 12px 22px;
+            border-radius: 40px;
+            margin-bottom: 28px;
+            font-size: 0.92rem;
+            border: 1px solid #e6eef7;
+        }
+
+        .info-strip-soft span {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .info-strip-soft i {
+            width: 18px;
+            text-align: center;
+        }
+
+        /* ----- GRID (2D) ----- */
+        .grid-soft {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            margin: 20px 0 28px;
+        }
+
+        @media (max-width: 720px) {
+            .grid-soft {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+            .card-soft {
+                padding: 22px 16px 30px;
+            }
+        }
+
+        /* ----- SOFT BOX ----- */
+        .box-soft {
+            background: #f8fbfe;
+            border-radius: 32px;
+            padding: 20px 20px 24px;
+            border: 1px solid #e6eef7;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .box-soft:hover {
+            border-color: #c8dbe9;
+            box-shadow: 0 4px 16px rgba(0, 40, 80, 0.04);
+        }
+
+        .box-title-soft {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 19px;
+            font-weight: 600;
+            margin-bottom: 14px;
+        }
+
+        .box-title-soft i {
+            font-size: 20px;
+            width: 32px;
+            text-align: center;
+        }
+
+        /* file label */
+        .file-label-soft {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 2px dashed #cfe0ef;
+            border-radius: 24px;
+            padding: 22px 10px 20px;
+            cursor: pointer;
+            transition: 0.2s;
+            gap: 4px;
+        }
+
+        .file-label-soft:hover {
+            border-color: #8ab3d4;
+            background: #f5faff;
+        }
+
+        .file-label-soft i {
+            font-size: 36px;
+            margin-bottom: 2px;
+        }
+
+        .file-label-soft span {
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .file-label-soft small {
+            font-size: 0.8rem;
+            font-weight: 400;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* preview */
+        .preview-soft {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 14px 10px;
+            margin: 12px 0 10px;
+            text-align: center;
+            min-height: 110px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #eaf0f6;
+        }
+
+        .preview-soft img {
+            max-width: 100%;
+            max-height: 145px;
+            border-radius: 12px;
+            background: #f5f9fe;
+            padding: 4px;
+            object-fit: contain;
+        }
+
+        .preview-soft .placeholder {
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* info row */
+        .info-row-soft {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 16px;
+            border-radius: 40px;
+            margin: 10px 0 6px;
+            font-size: 0.82rem;
+            flex-wrap: wrap;
+            gap: 4px 12px;
+        }
+
+        .info-row-soft i {
+            margin-right: 4px;
+            width: 16px;
+            text-align: center;
+        }
+
+        /* buttons */
+        .btn-group-soft {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .btn-soft {
+            background: #ffffff;
+            border: 1px solid #d0dfec;
+            padding: 10px 22px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1 0 auto;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+        }
+
+        .btn-soft i {
+            color: #3a8ec4;
+        }
+
+        .btn-primary-soft {
+            border: 1px solid;
+            color: white;
+            box-shadow: 0 4px 12px rgba(20, 80, 140, 0.15);
+        }
+
+        .btn-primary-soft i {
+            color: white;
+        }
+
+        .btn-primary-soft:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(20, 80, 140, 0.20);
+        }
+
+        .btn-outline-soft {
+            background: transparent;
+            border-color: #d0dfec;
+        }
+
+        .btn-outline-soft:hover {
+            background: #edf4fa;
+            border-color: #b0cade;
+        }
+
+        .btn-soft:disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        /* footer */
+        .footer-soft {
+            margin-top: 28px;
+            border-radius: 40px;
+            padding: 14px 24px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #e6eef7;
+            font-size: 0.88rem;
+            gap: 10px 20px;
+        }
+
+        .footer-soft i {
+            margin-right: 5px;
+        }
+
+        .footer-badge-soft {
+            padding: 4px 18px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.8rem;
+        }
+
+        /* --- NSDL specific theme overrides --- */
+        .card-nsdl .title-soft i {
+            color: #1a7a5e;
+            background: #e4f3ed;
+        }
+
+        .card-nsdl .title-soft h1 {
+            color: #0d5a44;
+        }
+
+        .card-nsdl .badge-soft {
+            background: #e4f3ed;
+            color: #0d5a44;
+        }
+
+        .card-nsdl .badge-soft i {
+            color: #1a7a5e;
+        }
+
+        .card-nsdl .badge-soft span {
+            background: #c8e6db;
+        }
+
+        .card-nsdl .info-strip-soft {
+            background: #f2faf6;
+            color: #0d5a44;
+            border-color: #d4e8e0;
+        }
+
+        .card-nsdl .info-strip-soft i {
+            color: #1a8a6a;
+        }
+
+        .card-nsdl .box-soft {
+            background: #f5fbf8;
+            border-color: #d4e8e0;
+        }
+
+        .card-nsdl .box-soft:hover {
+            border-color: #a8cdbc;
+        }
+
+        .card-nsdl .box-title-soft {
+            color: #0d5a44;
+        }
+
+        .card-nsdl .box-title-soft i {
+            color: #1a7a5e;
+        }
+
+        .card-nsdl .file-label-soft {
+            border-color: #bdd9ce;
+        }
+
+        .card-nsdl .file-label-soft:hover {
+            border-color: #6aaa8e;
+            background: #f1faf5;
+        }
+
+        .card-nsdl .file-label-soft i {
+            color: #1a8a6a;
+        }
+
+        .card-nsdl .file-label-soft {
+            color: #0d5a44;
+        }
+
+        .card-nsdl .info-row-soft {
+            background: #e4f3ed;
+            color: #0d5a44;
+        }
+
+        .card-nsdl .info-row-soft i {
+            color: #1a8a6a;
+        }
+
+        .card-nsdl .btn-primary-soft {
+            background: #0d5a44;
+            border-color: #0d5a44;
+            box-shadow: 0 4px 12px rgba(13, 90, 68, 0.15);
+        }
+
+        .card-nsdl .btn-primary-soft i {
+            color: white;
+        }
+
+        .card-nsdl .btn-primary-soft:hover {
+            background: #094433;
+            border-color: #094433;
+            box-shadow: 0 6px 16px rgba(13, 90, 68, 0.20);
+        }
+
+        .card-nsdl .btn-outline-soft {
+            border-color: #bdd9ce;
+        }
+
+        .card-nsdl .btn-outline-soft:hover {
+            background: #e4f3ed;
+            border-color: #8dbdab;
+        }
+
+        .card-nsdl .btn-soft i {
+            color: #1a8a6a;
+        }
+
+        .card-nsdl .footer-soft {
+            background: #f2faf6;
+            border-color: #d4e8e0;
+            color: #0d5a44;
+        }
+
+        .card-nsdl .footer-soft i {
+            color: #1a8a6a;
+        }
+
+        .card-nsdl .footer-badge-soft {
+            background: #e4f3ed;
+            color: #0d5a44;
+        }
+
+        .card-nsdl .preview-soft {
+            border-color: #d4e8e0;
+        }
+
+        .card-nsdl .preview-soft .placeholder {
+            color: #4a8a7a;
+        }
+
+        /* --- PDF Compressor theme (purple/indigo) --- */
+        .card-pdf .title-soft i {
+            color: #5a3d8a;
+            background: #eee8f5;
+        }
+
+        .card-pdf .title-soft h1 {
+            color: #4a2d7a;
+        }
+
+        .card-pdf .badge-soft {
+            background: #eee8f5;
+            color: #4a2d7a;
+        }
+
+        .card-pdf .badge-soft i {
+            color: #5a3d8a;
+        }
+
+        .card-pdf .badge-soft span {
+            background: #ddd0eb;
+        }
+
+        .card-pdf .info-strip-soft {
+            background: #f5f0fa;
+            color: #4a2d7a;
+            border-color: #e0d6ec;
+        }
+
+        .card-pdf .info-strip-soft i {
+            color: #6a4d9a;
+        }
+
+        .card-pdf .box-soft {
+            background: #f7f4fc;
+            border-color: #e0d6ec;
+        }
+
+        .card-pdf .box-soft:hover {
+            border-color: #c4b4dc;
+        }
+
+        .card-pdf .box-title-soft {
+            color: #4a2d7a;
+        }
+
+        .card-pdf .box-title-soft i {
+            color: #5a3d8a;
+        }
+
+        .card-pdf .file-label-soft {
+            border-color: #d0c4e4;
+        }
+
+        .card-pdf .file-label-soft:hover {
+            border-color: #a890cc;
+            background: #f3edfa;
+        }
+
+        .card-pdf .file-label-soft i {
+            color: #6a4d9a;
+        }
+
+        .card-pdf .file-label-soft {
+            color: #4a2d7a;
+        }
+
+        .card-pdf .info-row-soft {
+            background: #eee8f5;
+            color: #4a2d7a;
+        }
+
+        .card-pdf .info-row-soft i {
+            color: #6a4d9a;
+        }
+
+        .card-pdf .btn-primary-soft {
+            background: #5a3d8a;
+            border-color: #5a3d8a;
+            box-shadow: 0 4px 12px rgba(90, 61, 138, 0.15);
+        }
+
+        .card-pdf .btn-primary-soft i {
+            color: white;
+        }
+
+        .card-pdf .btn-primary-soft:hover {
+            background: #4a2d7a;
+            border-color: #4a2d7a;
+            box-shadow: 0 6px 16px rgba(90, 61, 138, 0.20);
+        }
+
+        .card-pdf .btn-outline-soft {
+            border-color: #d0c4e4;
+        }
+
+        .card-pdf .btn-outline-soft:hover {
+            background: #eee8f5;
+            border-color: #b09ccc;
+        }
+
+        .card-pdf .btn-soft i {
+            color: #6a4d9a;
+        }
+
+        .card-pdf .footer-soft {
+            background: #f5f0fa;
+            border-color: #e0d6ec;
+            color: #4a2d7a;
+        }
+
+        .card-pdf .footer-soft i {
+            color: #6a4d9a;
+        }
+
+        .card-pdf .footer-badge-soft {
+            background: #eee8f5;
+            color: #4a2d7a;
+        }
+
+        .card-pdf .preview-soft {
+            border-color: #e0d6ec;
+        }
+
+        .card-pdf .preview-soft .placeholder {
+            color: #7a5d9a;
+        }
+
+        /* divider */
+        .section-divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 4px 0 2px;
+        }
+
+        .section-divider .line {
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #b8ccdd, transparent);
+        }
+
+        .section-divider .label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #5a7a8a;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            background: #f0f4fa;
+            padding: 0 16px;
+            border-radius: 40px;
+        }
+
+        /* ----- PDF Compressor specific styles ----- */
+        .upload-zone-pdf {
+            border: 2px dashed #d0c4e4;
+            border-radius: 24px;
+            padding: 32px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.25s, background 0.2s;
+            background: #faf8fc;
+            position: relative;
+        }
+
+        .upload-zone-pdf:hover,
+        .upload-zone-pdf.dragover {
+            border-color: #8a70b8;
+            background: #f5f0fa;
+        }
+
+        .upload-zone-pdf .icon {
+            font-size: 44px;
+            margin-bottom: 6px;
+            display: block;
+            color: #6a4d9a;
+        }
+
+        .upload-zone-pdf h3 {
+            font-weight: 600;
+            font-size: 17px;
+            color: #4a2d7a;
+        }
+
+        .upload-zone-pdf p {
+            color: #7a6a8a;
+            font-size: 14px;
+            margin-top: 2px;
+        }
+
+        .upload-zone-pdf .hint {
+            font-size: 13px;
+            color: #9a8aaa;
+            margin-top: 8px;
+        }
+
+        .upload-zone-pdf input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* file list for PDF */
+        .file-list-pdf {
+            margin-top: 16px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .file-list-pdf.active {
+            display: flex;
+        }
+
+        .file-item-pdf {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f5f0fa;
+            border-radius: 14px;
+            padding: 10px 16px;
+            gap: 12px;
+            flex-wrap: wrap;
+            border: 1px solid #e0d6ec;
+        }
+
+        .file-item-pdf .info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1 1 180px;
+            min-width: 0;
+        }
+
+        .file-item-pdf .info .name {
+            font-weight: 500;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #3a2a4a;
+        }
+
+        .file-item-pdf .info .size {
+            font-size: 13px;
+            color: #7a6a8a;
+            white-space: nowrap;
+        }
+
+        .file-item-pdf .status {
+            font-size: 13px;
+            font-weight: 500;
+            padding: 4px 14px;
+            border-radius: 30px;
+            background: #e8e0f0;
+            color: #5a4a6a;
+            white-space: nowrap;
+        }
+
+        .file-item-pdf .status.done {
+            background: #e0f0e6;
+            color: #1a6a4a;
+        }
+
+        .file-item-pdf .status.skipped {
+            background: #fff8e0;
+            color: #8a7a2a;
+        }
+
+        .file-item-pdf .status.error {
+            background: #fde8e8;
+            color: #b33a3a;
+        }
+
+        .file-item-pdf .status.processing {
+            background: #fff3d6;
+            color: #a8701a;
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .file-item-pdf .btn-download {
+            background: #5a3d8a;
+            border: none;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            white-space: nowrap;
+        }
+
+        .file-item-pdf .btn-download:hover {
+            background: #4a2d7a;
+        }
+
+        .file-item-pdf .btn-download:active {
+            transform: scale(0.96);
+        }
+
+        .file-item-pdf .btn-download:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* PDF controls */
+        .controls-pdf {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px 20px;
+            margin-top: 20px;
+            padding-top: 18px;
+            border-top: 1px solid #e0d6ec;
+        }
+
+        .controls-pdf .target-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .controls-pdf .target-group label {
+            font-weight: 500;
+            font-size: 14px;
+            color: #4a2d7a;
+        }
+
+        .controls-pdf .target-group input[type="number"] {
+            width: 100px;
+            padding: 8px 10px;
+            border: 1.5px solid #d0c4e4;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            background: #faf8fc;
+            transition: border-color 0.2s;
+            outline: none;
+            color: #3a2a4a;
+        }
+
+        .controls-pdf .target-group input[type="number"]:focus {
+            border-color: #6a4d9a;
+            box-shadow: 0 0 0 3px rgba(90, 61, 138, 0.12);
+        }
+
+        .controls-pdf .target-group span {
+            font-size: 14px;
+            color: #7a6a8a;
+        }
+
+        .controls-pdf .btn-compress {
+            background: linear-gradient(135deg, #4a2d7a, #6a4d9a);
+            border: none;
+            color: #fff;
+            font-weight: 600;
+            font-size: 15px;
+            padding: 10px 32px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            box-shadow: 0 4px 14px rgba(90, 61, 138, 0.25);
+            margin-left: auto;
+            white-space: nowrap;
+        }
+
+        .controls-pdf .btn-compress:hover {
+            opacity: 0.9;
+            box-shadow: 0 6px 20px rgba(90, 61, 138, 0.30);
+        }
+
+        .controls-pdf .btn-compress:active {
+            transform: scale(0.97);
+        }
+
+        .controls-pdf .btn-compress:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* PDF progress */
+        .progress-wrap-pdf {
+            margin-top: 18px;
+            display: none;
+        }
+
+        .progress-wrap-pdf.active {
+            display: block;
+        }
+
+        .progress-bar-pdf {
+            width: 100%;
+            height: 6px;
+            background: #e8e0f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar-pdf .fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #5a3d8a, #8a70b8);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text-pdf {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #7a6a8a;
+            margin-top: 6px;
+        }
+
+        /* security notice for PDF */
+        .security-pdf {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 24px;
+            padding: 14px 20px;
+            background: #f5f0fa;
+            border-radius: 14px;
+            font-size: 14px;
+            color: #4a2d7a;
+            border-left: 4px solid #6a4d9a;
+        }
+
+        .security-pdf .shield {
+            font-size: 22px;
+        }
+
+        .security-pdf a {
+            color: #5a3d8a;
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .security-pdf a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            .card-soft {
+                padding: 20px 12px 26px;
+            }
+            .header-soft {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .title-soft h1 {
+                font-size: 20px;
+            }
+            .badge-soft {
+                font-size: 0.75rem;
+                padding: 6px 14px;
+            }
+            .info-strip-soft {
+                font-size: 0.8rem;
+                padding: 10px 16px;
+            }
+            .box-title-soft {
+                font-size: 17px;
+            }
+            .btn-soft {
+                font-size: 0.8rem;
+                padding: 8px 14px;
+            }
+            .footer-soft {
+                font-size: 0.8rem;
+                padding: 12px 16px;
+            }
+            .controls-pdf {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .controls-pdf .btn-compress {
+                margin-left: 0;
+                width: 100%;
+                justify-content: center;
+            }
+            .file-item-pdf {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            .file-item-pdf .info {
+                flex: 1 1 auto;
+            }
+            .file-item-pdf .btn-download {
+                align-self: flex-start;
+            }
+            .security-pdf {
+                flex-wrap: wrap;
+                font-size: 13px;
+            }
+            .upload-zone-pdf {
+                padding: 24px 16px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .controls-pdf .target-group {
+                width: 100%;
+            }
+            .controls-pdf .target-group input[type="number"] {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-wrapper">
+
+        <div class="publish-directory-panel">
+            <div class="publish-directory-header">
+                <i class="fas fa-folder-open"></i>
+                <h2>Publish Directory</h2>
+            </div>
+            <label class="publish-directory-label" for="publishDirectoryInput">Relative path of the directory containing built assets to publish</label>
+            <input class="publish-directory-input" id="publishDirectoryInput" type="text" value="./" placeholder="./build" />
+            <p class="publish-directory-hint">Examples: ./, ./build, dist, frontend/build</p>
+        </div>
+
+        <!-- ============================================================ -->
+        <!--  PART 1 : SARATHI / PARIVAHAN  (DL)                          -->
+        <!-- ============================================================ -->
+        <div class="card-soft">
+
+            <!-- HEADER -->
+            <div class="header-soft">
+                <div class="title-soft">
+                    <i class="fas fa-id-card" style="color:#2a7bb5; background:#e7f0f9;"></i>
+                    <h1 style="color:#12406b;">DL Photo &amp; Signature</h1>
+                </div>
+                <div class="badge-soft" style="background:#e7f0f9; color:#1a5e8a;">
+                    <i class="fas fa-check-circle" style="color:#2a7bb5;"></i> Sarathi · Parivahan
+                    <i class="fas fa-arrow-right" style="margin-left:6px;"></i>
+                    <span style="background:#d4e4f0; padding:2px 12px; border-radius:30px;">2D soft</span>
+                </div>
+            </div>
+
+            <!-- INFO STRIP -->
+            <div class="info-strip-soft" style="background:#f5f9fe; color:#1d4c77; border-color:#e6eef7;">
+                <span><i class="fas fa-arrows-alt" style="color:#3a8ec4;"></i> 420×525 · 256×64</span>
+                <span><i class="fas fa-weight" style="color:#3a8ec4;"></i> 10–20 KB</span>
+                <span><i class="fas fa-file-image" style="color:#3a8ec4;"></i> JPG output</span>
+                <span><i class="fas fa-cloud-upload-alt" style="color:#3a8ec4;"></i> Direct upload</span>
+            </div>
+
+            <!-- GRID -->
+            <div class="grid-soft">
+
+                <!-- PHOTO -->
+                <div class="box-soft">
+                    <div class="box-title-soft" style="color:#12406b;"><i class="fas fa-camera-retro" style="color:#2a7bb5;"></i> Photo</div>
+                    <label class="file-label-soft" for="photoInputSoft">
+                        <i class="fas fa-cloud-upload-alt" style="color:#4a8fc4;"></i>
+                        <span>Upload photo</span>
+                        <small>JPG, PNG, WEBP</small>
+                    </label>
+                    <input type="file" id="photoInputSoft" accept="image/*" />
+                    <div class="preview-soft" id="photoPreviewWrapSoft">
+                        <img id="photoPreviewSoft" src="#" alt="preview" style="display:none;" />
+                        <span class="placeholder" id="photoPlaceholderSoft" style="color:#7a9bb8;"><i class="fas fa-image"></i> No image</span>
+                    </div>
+                    <div class="info-row-soft" style="background:#edf4fa; color:#12406b;">
+                        <span><i class="fas fa-arrows-alt-h" style="color:#3a8ec4;"></i> 420 × 525</span>
+                        <span><i class="fas fa-weight" style="color:#3a8ec4;"></i> <span id="photoSizeSoft">—</span></span>
+                        <span><i class="fas fa-file-alt" style="color:#3a8ec4;"></i> <span id="photoFormatSoft">—</span></span>
+                    </div>
+                    <div class="btn-group-soft">
+                        <button class="btn-soft btn-primary-soft" id="downloadPhotoBtnSoft" style="background:#1a5e8a; border-color:#1a5e8a;" disabled><i class="fas fa-download"></i> Download</button>
+                        <button class="btn-soft btn-outline-soft" id="resetPhotoBtnSoft"><i class="fas fa-undo-alt"></i> Reset</button>
+                    </div>
+                </div>
+
+                <!-- SIGNATURE -->
+                <div class="box-soft">
+                    <div class="box-title-soft" style="color:#12406b;"><i class="fas fa-pen-fancy" style="color:#2a7bb5;"></i> Signature</div>
+                    <label class="file-label-soft" for="sigInputSoft">
+                        <i class="fas fa-cloud-upload-alt" style="color:#4a8fc4;"></i>
+                        <span>Upload signature</span>
+                        <small>JPG, PNG, WEBP</small>
+                    </label>
+                    <input type="file" id="sigInputSoft" accept="image/*" />
+                    <div class="preview-soft" id="sigPreviewWrapSoft">
+                        <img id="sigPreviewSoft" src="#" alt="preview" style="display:none;" />
+                        <span class="placeholder" id="sigPlaceholderSoft" style="color:#7a9bb8;"><i class="fas fa-pen"></i> No signature</span>
+                    </div>
+                    <div class="info-row-soft" style="background:#edf4fa; color:#12406b;">
+                        <span><i class="fas fa-arrows-alt-h" style="color:#3a8ec4;"></i> 256 × 64</span>
+                        <span><i class="fas fa-weight" style="color:#3a8ec4;"></i> <span id="sigSizeSoft">—</span></span>
+                        <span><i class="fas fa-file-alt" style="color:#3a8ec4;"></i> <span id="sigFormatSoft">—</span></span>
+                    </div>
+                    <div class="btn-group-soft">
+                        <button class="btn-soft btn-primary-soft" id="downloadSigBtnSoft" style="background:#1a5e8a; border-color:#1a5e8a;" disabled><i class="fas fa-download"></i> Download</button>
+                        <button class="btn-soft btn-outline-soft" id="resetSigBtnSoft"><i class="fas fa-undo-alt"></i> Reset</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- FOOTER -->
+            <div class="footer-soft" style="background:#f5f9fe; border-color:#e6eef7; color:#1d4c77;">
+                <span><i class="fas fa-check-circle" style="color:#2a8a4a;"></i> Auto‑resized &amp; compressed to JPG</span>
+                <span><i class="fas fa-robot" style="color:#3a8ec4;"></i> 10–20 KB ready</span>
+                <span class="footer-badge-soft" style="background:#e7f0f9; color:#1a5e8a;"><i class="fas fa-upload" style="color:#3a8ec4;"></i> Sarathi ready</span>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!--  DIVIDER 1                                                    -->
+        <!-- ============================================================ -->
+        <div class="section-divider">
+            <span class="line"></span>
+            <span class="label"><i class="fas fa-arrow-down"></i> NSDL SECTION <i class="fas fa-arrow-down"></i></span>
+            <span class="line"></span>
+        </div>
+
+        <!-- ============================================================ -->
+        <!--  PART 2 : NSDL  (CORRECTED DIMENSIONS)                       -->
+        <!-- ============================================================ -->
+        <div class="card-soft card-nsdl">
+
+            <!-- HEADER -->
+            <div class="header-soft">
+                <div class="title-soft">
+                    <i class="fas fa-file-invoice" style="color:#1a7a5e; background:#e4f3ed;"></i>
+                    <h1 style="color:#0d5a44;">NSDL Photo &amp; Signature</h1>
+                </div>
+                <div class="badge-soft" style="background:#e4f3ed; color:#0d5a44;">
+                    <i class="fas fa-check-circle" style="color:#1a7a5e;"></i> NSDL · Demat
+                    <i class="fas fa-arrow-right" style="margin-left:6px;"></i>
+                    <span style="background:#c8e6db; padding:2px 12px; border-radius:30px;">2D soft</span>
+                </div>
+            </div>
+
+            <!-- INFO STRIP — updated with correct dimensions -->
+            <div class="info-strip-soft" style="background:#f2faf6; color:#0d5a44; border-color:#d4e8e0;">
+                <span><i class="fas fa-arrows-alt" style="color:#1a8a6a;"></i> Photo 197×276 · Sig 354×157</span>
+                <span><i class="fas fa-weight" style="color:#1a8a6a;"></i> 10–20 KB</span>
+                <span><i class="fas fa-file-image" style="color:#1a8a6a;"></i> JPG output</span>
+                <span><i class="fas fa-cloud-upload-alt" style="color:#1a8a6a;"></i> Direct upload</span>
+            </div>
+
+            <!-- GRID -->
+            <div class="grid-soft">
+
+                <!-- PHOTO — NSDL: 3.5 cm (H) × 2.5 cm (W) @ 200 DPI → 276×197 (H×W) but we store as width×height: 197×276 -->
+                <div class="box-soft">
+                    <div class="box-title-soft" style="color:#0d5a44;"><i class="fas fa-camera-retro" style="color:#1a7a5e;"></i> Photo</div>
+                    <label class="file-label-soft" for="photoInputNsdl">
+                        <i class="fas fa-cloud-upload-alt" style="color:#1a8a6a;"></i>
+                        <span>Upload photo</span>
+                        <small>JPG, PNG, WEBP</small>
+                    </label>
+                    <input type="file" id="photoInputNsdl" accept="image/*" />
+                    <div class="preview-soft" id="photoPreviewWrapNsdl">
+                        <img id="photoPreviewNsdl" src="#" alt="preview" style="display:none;" />
+                        <span class="placeholder" id="photoPlaceholderNsdl" style="color:#4a8a7a;"><i class="fas fa-image"></i> No image</span>
+                    </div>
+                    <div class="info-row-soft" style="background:#e4f3ed; color:#0d5a44;">
+                        <span><i class="fas fa-arrows-alt-h" style="color:#1a8a6a;"></i> 197 × 276 (2.5×3.5 cm)</span>
+                        <span><i class="fas fa-weight" style="color:#1a8a6a;"></i> <span id="photoSizeNsdl">—</span></span>
+                        <span><i class="fas fa-file-alt" style="color:#1a8a6a;"></i> <span id="photoFormatNsdl">—</span></span>
+                    </div>
+                    <div class="btn-group-soft">
+                        <button class="btn-soft btn-primary-soft" id="downloadPhotoBtnNsdl" style="background:#0d5a44; border-color:#0d5a44;" disabled><i class="fas fa-download"></i> Download</button>
+                        <button class="btn-soft btn-outline-soft" id="resetPhotoBtnNsdl"><i class="fas fa-undo-alt"></i> Reset</button>
+                    </div>
+                </div>
+
+                <!-- SIGNATURE — NSDL: 2 cm (H) × 4.5 cm (W) @ 200 DPI → 157×354 (H×W) but we store as width×height: 354×157 -->
+                <div class="box-soft">
+                    <div class="box-title-soft" style="color:#0d5a44;"><i class="fas fa-pen-fancy" style="color:#1a7a5e;"></i> Signature</div>
+                    <label class="file-label-soft" for="sigInputNsdl">
+                        <i class="fas fa-cloud-upload-alt" style="color:#1a8a6a;"></i>
+                        <span>Upload signature</span>
+                        <small>JPG, PNG, WEBP</small>
+                    </label>
+                    <input type="file" id="sigInputNsdl" accept="image/*" />
+                    <div class="preview-soft" id="sigPreviewWrapNsdl">
+                        <img id="sigPreviewNsdl" src="#" alt="preview" style="display:none;" />
+                        <span class="placeholder" id="sigPlaceholderNsdl" style="color:#4a8a7a;"><i class="fas fa-pen"></i> No signature</span>
+                    </div>
+                    <div class="info-row-soft" style="background:#e4f3ed; color:#0d5a44;">
+                        <span><i class="fas fa-arrows-alt-h" style="color:#1a8a6a;"></i> 354 × 157 (4.5×2 cm)</span>
+                        <span><i class="fas fa-weight" style="color:#1a8a6a;"></i> <span id="sigSizeNsdl">—</span></span>
+                        <span><i class="fas fa-file-alt" style="color:#1a8a6a;"></i> <span id="sigFormatNsdl">—</span></span>
+                    </div>
+                    <div class="btn-group-soft">
+                        <button class="btn-soft btn-primary-soft" id="downloadSigBtnNsdl" style="background:#0d5a44; border-color:#0d5a44;" disabled><i class="fas fa-download"></i> Download</button>
+                        <button class="btn-soft btn-outline-soft" id="resetSigBtnNsdl"><i class="fas fa-undo-alt"></i> Reset</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- FOOTER -->
+            <div class="footer-soft" style="background:#f2faf6; border-color:#d4e8e0; color:#0d5a44;">
+                <span><i class="fas fa-check-circle" style="color:#1a8a4a;"></i> Auto‑resized &amp; compressed to JPG</span>
+                <span><i class="fas fa-robot" style="color:#1a8a6a;"></i> 10–20 KB ready</span>
+                <span class="footer-badge-soft" style="background:#e4f3ed; color:#0d5a44;"><i class="fas fa-upload" style="color:#1a8a6a;"></i> NSDL ready</span>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!--  DIVIDER 2                                                    -->
+        <!-- ============================================================ -->
+        <div class="section-divider">
+            <span class="line"></span>
+            <span class="label"><i class="fas fa-arrow-down"></i> PDF COMPRESSOR <i class="fas fa-arrow-down"></i></span>
+            <span class="line"></span>
+        </div>
+
+        <!-- ============================================================ -->
+        <!--  PART 3 : PDF COMPRESSOR (Target fixed ≥ 270 KB)             -->
+        <!-- ============================================================ -->
+        <div class="card-soft card-pdf">
+
+            <!-- HEADER -->
+            <div class="header-soft">
+                <div class="title-soft">
+                    <i class="fas fa-file-pdf" style="color:#5a3d8a; background:#eee8f5;"></i>
+                    <h1 style="color:#4a2d7a;">PDF Compressor</h1>
+                </div>
+                <div class="badge-soft" style="background:#eee8f5; color:#4a2d7a;">
+                    <i class="fas fa-check-circle" style="color:#5a3d8a;"></i> Compress to any size
+                    <i class="fas fa-arrow-right" style="margin-left:6px;"></i>
+                    <span style="background:#ddd0eb; padding:2px 12px; border-radius:30px;">2D soft</span>
+                </div>
+            </div>
+
+            <!-- INFO STRIP - updated default -->
+            <div class="info-strip-soft" style="background:#f5f0fa; color:#4a2d7a; border-color:#e0d6ec;">
+                <span><i class="fas fa-arrows-alt" style="color:#6a4d9a;"></i> Compress to 270 KB default</span>
+                <span><i class="fas fa-weight" style="color:#6a4d9a;"></i> Min 270 KB</span>
+                <span><i class="fas fa-file-image" style="color:#6a4d9a;"></i> JPG re-encoding</span>
+                <span><i class="fas fa-cloud-upload-alt" style="color:#6a4d9a;"></i> 3 files at a time</span>
+            </div>
+
+            <!-- UPLOAD ZONE -->
+            <div class="upload-zone-pdf" id="uploadZonePdf">
+                <span class="icon">📤</span>
+                <h3>Drop your PDF here</h3>
+                <p>or click to browse</p>
+                <div class="hint">Supports up to 3 files at once · Max 50 MB each</div>
+                <input type="file" id="fileInputPdf" accept=".pdf" multiple />
+            </div>
+
+            <!-- FILE LIST -->
+            <div class="file-list-pdf" id="fileListPdf"></div>
+
+            <!-- CONTROLS - min and default set to 270 -->
+            <div class="controls-pdf">
+                <div class="target-group">
+                    <label for="targetSizePdf">Target size</label>
+                    <input type="number" id="targetSizePdf" value="270" min="270" max="5000" step="5" />
+                    <span>KB</span>
+                </div>
+                <button class="btn-compress" id="compressBtnPdf">⚡ Compress All</button>
+            </div>
+
+            <!-- PROGRESS -->
+            <div class="progress-wrap-pdf" id="progressWrapPdf">
+                <div class="progress-bar-pdf">
+                    <div class="fill" id="progressFillPdf"></div>
+                </div>
+                <div class="progress-text-pdf">
+                    <span id="progressLabelPdf">Processing…</span>
+                    <span id="progressPercentPdf">0%</span>
+                </div>
+            </div>
+
+            <!-- SECURITY -->
+            <div class="security-pdf">
+                <span class="shield">🔒</span>
+                <div>
+                    <strong>Secure &amp; private.</strong> Your files are processed locally in your browser.
+                    Nothing is uploaded to any server. All data stays on your device.
+                    <br />
+                    <small style="color:#7a5d9a;"><i class="fas fa-info-circle"></i> Files already smaller than the target size are kept as-is to preserve quality.</small>
+                </div>
+            </div>
+
+            <!-- FOOTER -->
+            <div class="footer-soft" style="background:#f5f0fa; border-color:#e0d6ec; color:#4a2d7a;">
+                <span><i class="fas fa-check-circle" style="color:#5a3d8a;"></i> Auto‑compressed to target size (≥270 KB)</span>
+                <span><i class="fas fa-robot" style="color:#6a4d9a;"></i> Smart quality adjustment</span>
+                <span class="footer-badge-soft" style="background:#eee8f5; color:#4a2d7a;"><i class="fas fa-download" style="color:#6a4d9a;"></i> Download ready</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!--  JAVASCRIPT                                                   -->
+    <!-- ============================================================ -->
+    <script>
+        (function() {
+            'use strict';
+
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            //  PART A : DL / NSDL Photo & Signature Modules
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+            function formatFileSize(bytes) {
+                if (!bytes || bytes === 0) return '—';
+                if (bytes < 1024) return bytes + ' B';
+                return (bytes / 1024).toFixed(1) + ' KB';
+            }
+
+            function resizeImageToCanvas(image, targetWidth, targetHeight) {
+                const canvas = document.createElement('canvas');
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+                return canvas;
+            }
+
+            function compressCanvasToJpg(canvas, maxSizeKB, minSizeKB) {
+                let quality = 0.92;
+                let binary = null;
+                let sizeKB = 0;
+                for (let attempt = 0; attempt < 12; attempt++) {
+                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    const byteString = atob(dataUrl.split(',')[1]);
+                    const bytes = byteString.length;
+                    sizeKB = bytes / 1024;
+                    if (sizeKB <= maxSizeKB && sizeKB >= minSizeKB) {
+                        binary = dataUrl;
+                        break;
+                    }
+                    if (sizeKB > maxSizeKB) quality -= 0.07;
+                    else quality += 0.06;
+                    if (quality < 0.1) quality = 0.1;
+                    if (quality > 0.98) quality = 0.98;
+                }
+                if (!binary) binary = canvas.toDataURL('image/jpeg', 0.75);
+                return binary;
+            }
+
+            function dataURLToBlob(dataUrl) {
+                const parts = dataUrl.split(',');
+                const mime = parts[0].match(/:(.*?);/)[1];
+                const byteString = atob(parts[1]);
+                const ab = new ArrayBuffer(byteString.length);
+                const ia = new Uint8Array(ab);
+                for (let i = 0; i < byteString.length; i++) {
+                    ia[i] = byteString.charCodeAt(i);
+                }
+                return new Blob([ab], { type: mime });
+            }
+
+            async function processImage(file, type, targetWidth, targetHeight) {
+                return new Promise((resolve, reject) => {
+                    if (!file) return reject('No file');
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = new Image();
+                        img.onload = function() {
+                            const canvas = resizeImageToCanvas(img, targetWidth, targetHeight);
+                            const jpgDataUrl = compressCanvasToJpg(canvas, 20, 10);
+                            const byteString = atob(jpgDataUrl.split(',')[1]);
+                            const fileSizeBytes = byteString.length;
+                            const blob = dataURLToBlob(jpgDataUrl);
+                            const processedFile = new File([blob], `${type}_processed.jpg`, { type: 'image/jpeg' });
+                            resolve({
+                                dataUrl: jpgDataUrl,
+                                fileSizeBytes: fileSizeBytes,
+                                file: processedFile,
+                                blob: blob,
+                                width: targetWidth,
+                                height: targetHeight
+                            });
+                        };
+                        img.onerror = () => reject('Image load error');
+                        img.src = e.target.result;
+                    };
+                    reader.onerror = () => reject('FileReader error');
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            function createModule(config) {
+                const {
+                    photoInputId, sigInputId,
+                    photoPreviewId, sigPreviewId,
+                    photoPlaceholderId, sigPlaceholderId,
+                    photoSizeId, sigSizeId,
+                    photoFormatId, sigFormatId,
+                    downloadPhotoBtnId, downloadSigBtnId,
+                    resetPhotoBtnId, resetSigBtnId,
+                    photoWidth, photoHeight,
+                    sigWidth, sigHeight
+                } = config;
+
+                const photoInput = document.getElementById(photoInputId);
+                const sigInput = document.getElementById(sigInputId);
+                const photoPreview = document.getElementById(photoPreviewId);
+                const sigPreview = document.getElementById(sigPreviewId);
+                const photoPlaceholder = document.getElementById(photoPlaceholderId);
+                const sigPlaceholder = document.getElementById(sigPlaceholderId);
+                const photoSize = document.getElementById(photoSizeId);
+                const sigSize = document.getElementById(sigSizeId);
+                const photoFormat = document.getElementById(photoFormatId);
+                const sigFormat = document.getElementById(sigFormatId);
+                const downloadPhotoBtn = document.getElementById(downloadPhotoBtnId);
+                const downloadSigBtn = document.getElementById(downloadSigBtnId);
+                const resetPhotoBtn = document.getElementById(resetPhotoBtnId);
+                const resetSigBtn = document.getElementById(resetSigBtnId);
+
+                let photoData = null,
+                    sigData = null;
+
+                function updatePhotoUI(data) {
+                    if (data) {
+                        photoPreview.src = data.dataUrl;
+                        photoPreview.style.display = 'block';
+                        photoPlaceholder.style.display = 'none';
+                        photoSize.textContent = formatFileSize(data.fileSizeBytes);
+                        photoFormat.textContent = 'JPG';
+                        downloadPhotoBtn.disabled = false;
+                        photoData = data;
+                    } else {
+                        photoPreview.src = '#';
+                        photoPreview.style.display = 'none';
+                        photoPlaceholder.style.display = 'block';
+                        photoSize.textContent = '—';
+                        photoFormat.textContent = '—';
+                        downloadPhotoBtn.disabled = true;
+                        photoData = null;
+                    }
+                }
+
+                function updateSigUI(data) {
+                    if (data) {
+                        sigPreview.src = data.dataUrl;
+                        sigPreview.style.display = 'block';
+                        sigPlaceholder.style.display = 'none';
+                        sigSize.textContent = formatFileSize(data.fileSizeBytes);
+                        sigFormat.textContent = 'JPG';
+                        downloadSigBtn.disabled = false;
+                        sigData = data;
+                    } else {
+                        sigPreview.src = '#';
+                        sigPreview.style.display = 'none';
+                        sigPlaceholder.style.display = 'block';
+                        sigSize.textContent = '—';
+                        sigFormat.textContent = '—';
+                        downloadSigBtn.disabled = true;
+                        sigData = null;
+                    }
+                }
+
+                function resetPhoto() { photoInput.value = '';
+                    updatePhotoUI(null); }
+
+                function resetSig() { sigInput.value = '';
+                    updateSigUI(null); }
+
+                async function handleFileUpload(file, type) {
+                    if (!file) return;
+                    try {
+                        let result;
+                        if (type === 'photo') {
+                            result = await processImage(file, 'photo', photoWidth, photoHeight);
+                            updatePhotoUI(result);
+                        } else {
+                            result = await processImage(file, 'signature', sigWidth, sigHeight);
+                            updateSigUI(result);
+                        }
+                    } catch (err) {
+                        alert('Error: ' + err);
+                        if (type === 'photo') resetPhoto();
+                        else resetSig();
+                    }
+                }
+
+                photoInput.addEventListener('change', function(e) {
+                    if (this.files && this.files[0]) handleFileUpload(this.files[0], 'photo');
+                });
+                sigInput.addEventListener('change', function(e) {
+                    if (this.files && this.files[0]) handleFileUpload(this.files[0], 'signature');
+                });
+
+                resetPhotoBtn.addEventListener('click', resetPhoto);
+                resetSigBtn.addEventListener('click', resetSig);
+
+                downloadPhotoBtn.addEventListener('click', function() {
+                    if (photoData && photoData.blob) {
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(photoData.blob);
+                        link.download = `photo_${photoWidth}x${photoHeight}.jpg`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        setTimeout(() => URL.revokeObjectURL(link.href), 100);
+                    }
+                });
+
+                downloadSigBtn.addEventListener('click', function() {
+                    if (sigData && sigData.blob) {
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(sigData.blob);
+                        link.download = `signature_${sigWidth}x${sigHeight}.jpg`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        setTimeout(() => URL.revokeObjectURL(link.href), 100);
+                    }
+                });
+
+                return { resetPhoto, resetSig };
+            }
+
+            // Instantiate DL (Sarathi)
+            createModule({
+                photoInputId: 'photoInputSoft',
+                sigInputId: 'sigInputSoft',
+                photoPreviewId: 'photoPreviewSoft',
+                sigPreviewId: 'sigPreviewSoft',
+                photoPlaceholderId: 'photoPlaceholderSoft',
+                sigPlaceholderId: 'sigPlaceholderSoft',
+                photoSizeId: 'photoSizeSoft',
+                sigSizeId: 'sigSizeSoft',
+                photoFormatId: 'photoFormatSoft',
+                sigFormatId: 'sigFormatSoft',
+                downloadPhotoBtnId: 'downloadPhotoBtnSoft',
+                downloadSigBtnId: 'downloadSigBtnSoft',
+                resetPhotoBtnId: 'resetPhotoBtnSoft',
+                resetSigBtnId: 'resetSigBtnSoft',
+                photoWidth: 420,
+                photoHeight: 525,
+                sigWidth: 256,
+                sigHeight: 64
+            });
+
+            // Instantiate NSDL
+            createModule({
+                photoInputId: 'photoInputNsdl',
+                sigInputId: 'sigInputNsdl',
+                photoPreviewId: 'photoPreviewNsdl',
+                sigPreviewId: 'sigPreviewNsdl',
+                photoPlaceholderId: 'photoPlaceholderNsdl',
+                sigPlaceholderId: 'sigPlaceholderNsdl',
+                photoSizeId: 'photoSizeNsdl',
+                sigSizeId: 'sigSizeNsdl',
+                photoFormatId: 'photoFormatNsdl',
+                sigFormatId: 'sigFormatNsdl',
+                downloadPhotoBtnId: 'downloadPhotoBtnNsdl',
+                downloadSigBtnId: 'downloadSigBtnNsdl',
+                resetPhotoBtnId: 'resetPhotoBtnNsdl',
+                resetSigBtnId: 'resetSigBtnNsdl',
+                photoWidth: 197,
+                photoHeight: 276,
+                sigWidth: 354,
+                sigHeight: 157
+            });
+
+
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            //  PART B : PDF COMPRESSOR (Target fixed ≥ 270 KB)
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+            // pdf.js setup
+            const pdfjsLib = window.pdfjsLib;
+            if (pdfjsLib) {
+                pdfjsLib.GlobalWorkerOptions.workerSrc =
+                    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            }
+
+            const { PDFDocument } = window.PDFLib || {};
+
+            // DOM refs
+            const uploadZonePdf = document.getElementById('uploadZonePdf');
+            const fileInputPdf = document.getElementById('fileInputPdf');
+            const fileListPdf = document.getElementById('fileListPdf');
+            const compressBtnPdf = document.getElementById('compressBtnPdf');
+            const targetSizePdf = document.getElementById('targetSizePdf');
+            const progressWrapPdf = document.getElementById('progressWrapPdf');
+            const progressFillPdf = document.getElementById('progressFillPdf');
+            const progressLabelPdf = document.getElementById('progressLabelPdf');
+            const progressPercentPdf = document.getElementById('progressPercentPdf');
+
+            // State
+            const pdfFiles = []; // { file, name, size, status, compressedBlob, compressedSize, skipped }
+
+            let isProcessingPdf = false;
+
+            // Helper: format size
+            function formatSizePdf(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / 1048576).toFixed(1) + ' MB';
+            }
+
+            function getFileExtension(name) {
+                return name.split('.').pop().toLowerCase();
+            }
+
+            function escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // Render file list
+            function renderFileListPdf() {
+                if (pdfFiles.length === 0) {
+                    fileListPdf.classList.remove('active');
+                    fileListPdf.innerHTML = '';
+                    return;
+                }
+                fileListPdf.classList.add('active');
+
+                let html = '';
+                pdfFiles.forEach((f, idx) => {
+                    let statusText = 'Pending';
+                    let statusClass = '';
+                    let downloadBtn = '';
+
+                    if (f.status === 'processing') {
+                        statusText = '⏳ Compressing…';
+                        statusClass = 'processing';
+                    } else if (f.status === 'done') {
+                        if (f.skipped) {
+                            statusText = '✅ Skipped (≤ target)';
+                            statusClass = 'skipped';
+                        } else {
+                            statusText = '✅ Done';
+                            statusClass = 'done';
+                        }
+                        const sizeLabel = f.compressedSize !== undefined ? formatSizePdf(f.compressedSize) : '—';
+                        downloadBtn =
+                            `<button class="btn-download" data-index="${idx}">⬇ Download (${sizeLabel})</button>`;
+                    } else if (f.status === 'error') {
+                        statusText = '❌ Error';
+                        statusClass = 'error';
+                    } else {
+                        statusText = '⏳ Ready';
+                        statusClass = '';
+                    }
+
+                    html += `
+                        <div class="file-item-pdf" data-index="${idx}">
+                            <div class="info">
+                                <span class="name">${escapeHtml(f.name)}</span>
+                                <span class="size">${formatSizePdf(f.size)}</span>
+                            </div>
+                            <span class="status ${statusClass}">${statusText}</span>
+                            ${downloadBtn}
+                        </div>
+                    `;
+                });
+
+                fileListPdf.innerHTML = html;
+
+                fileListPdf.querySelectorAll('.btn-download').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const idx = parseInt(btn.dataset.index, 10);
+                        const f = pdfFiles[idx];
+                        if (f && f.compressedBlob) {
+                            const a = document.createElement('a');
+                            const name = f.name.replace(/\.pdf$/i, '') + '_compressed.pdf';
+                            a.href = URL.createObjectURL(f.compressedBlob);
+                            a.download = name;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+                        }
+                    });
+                });
+
+                updateButtonsPdf();
+            }
+
+            // Handle file upload
+            function handleFilesPdf(selectedFiles) {
+                const allowed = Array.from(selectedFiles).filter(f =>
+                    f.type === 'application/pdf' || getFileExtension(f.name) === 'pdf'
+                );
+
+                if (allowed.length === 0) {
+                    alert('Please select valid PDF files.');
+                    return;
+                }
+
+                const toAdd = allowed.slice(0, 3);
+                if (allowed.length > 3) {
+                    alert('Maximum 3 files at a time. Only the first 3 will be processed.');
+                }
+
+                for (const file of toAdd) {
+                    const exists = pdfFiles.some(f => f.name === file.name && f.size === file.size);
+                    if (!exists) {
+                        pdfFiles.push({
+                            file: file,
+                            name: file.name,
+                            size: file.size,
+                            status: 'ready',
+                            compressedBlob: null,
+                            compressedSize: null,
+                            skipped: false,
+                        });
+                    }
+                }
+
+                renderFileListPdf();
+                fileInputPdf.value = '';
+                updateButtonsPdf();
+            }
+
+            fileInputPdf.addEventListener('change', (e) => {
+                handleFilesPdf(e.target.files);
+            });
+
+            // Drag & drop
+            uploadZonePdf.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZonePdf.classList.add('dragover');
+            });
+
+            uploadZonePdf.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                uploadZonePdf.classList.remove('dragover');
+            });
+
+            uploadZonePdf.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZonePdf.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    handleFilesPdf(e.dataTransfer.files);
+                }
+            });
+
+            uploadZonePdf.addEventListener('click', (e) => {
+                if (e.target.tagName !== 'INPUT') {
+                    fileInputPdf.click();
+                }
+            });
+
+            function updateButtonsPdf() {
+                const hasReady = pdfFiles.some(f => f.status === 'ready' || f.status === 'done');
+                compressBtnPdf.disabled = isProcessingPdf || !hasReady;
+            }
+
+            // ── PDF compression core ──
+
+            async function buildPDFFromCanvases(canvases, quality, pageCount) {
+                const pdfDoc = await PDFDocument.create();
+
+                for (let i = 0; i < canvases.length; i++) {
+                    const canvas = canvases[i];
+                    const imgData = canvas.toDataURL('image/jpeg', quality);
+                    const imgBytes = await fetch(imgData).then(r => r.arrayBuffer());
+
+                    let img;
+                    try {
+                        img = await pdfDoc.embedJpg(imgBytes);
+                    } catch (err) {
+                        const pngData = canvas.toDataURL('image/png');
+                        const pngBytes = await fetch(pngData).then(r => r.arrayBuffer());
+                        img = await pdfDoc.embedPng(pngBytes);
+                    }
+
+                    const page = pdfDoc.addPage([img.width, img.height]);
+                    page.drawImage(img, {
+                        x: 0,
+                        y: 0,
+                        width: img.width,
+                        height: img.height,
+                    });
+                }
+
+                const pdfBytes = await pdfDoc.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                return {
+                    blob,
+                    size: blob.size,
+                };
+            }
+
+            async function compressPDFFile(file, targetKB) {
+                const targetBytes = targetKB * 1024;
+                const arrayBuffer = await file.arrayBuffer();
+
+                // If already smaller than target, return original
+                if (arrayBuffer.byteLength <= targetBytes) {
+                    return {
+                        blob: new Blob([arrayBuffer], { type: 'application/pdf' }),
+                        size: arrayBuffer.byteLength,
+                        originalSize: arrayBuffer.byteLength,
+                        quality: 1,
+                        skipped: true,
+                    };
+                }
+
+                let pdfDoc;
+                try {
+                    pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                } catch (err) {
+                    throw new Error('Failed to read PDF: ' + err.message);
+                }
+
+                const pageCount = pdfDoc.numPages;
+                const canvases = [];
+
+                for (let i = 1; i <= pageCount; i++) {
+                    const page = await pdfDoc.getPage(i);
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: viewport,
+                    };
+                    await page.render(renderContext).promise;
+                    canvases.push(canvas);
+                }
+
+                // Binary search for quality
+                let low = 0.05;
+                let high = 0.95;
+                let bestQuality = 0.5;
+                let bestBlob = null;
+                let bestSize = Infinity;
+                const maxIterations = 12;
+                let iteration = 0;
+
+                const tries = [0.9, 0.7, 0.5, 0.3, 0.15, 0.08];
+                for (const q of tries) {
+                    const result = await buildPDFFromCanvases(canvases, q, pageCount);
+                    if (result.size <= targetBytes) {
+                        bestQuality = q;
+                        bestBlob = result.blob;
+                        bestSize = result.size;
+                        break;
+                    }
+                    if (result.size < bestSize) {
+                        bestSize = result.size;
+                        bestBlob = result.blob;
+                        bestQuality = q;
+                    }
+                }
+
+                if (bestBlob && bestSize <= targetBytes) {
+                    return {
+                        blob: bestBlob,
+                        size: bestSize,
+                        originalSize: arrayBuffer.byteLength,
+                        quality: bestQuality,
+                        skipped: false,
+                    };
+                }
+
+                while (iteration < maxIterations) {
+                    iteration++;
+                    const mid = (low + high) / 2;
+                    const result = await buildPDFFromCanvases(canvases, mid, pageCount);
+
+                    if (result.size <= targetBytes) {
+                        bestQuality = mid;
+                        bestBlob = result.blob;
+                        bestSize = result.size;
+                        high = mid;
+                    } else {
+                        low = mid;
+                    }
+
+                    if (Math.abs(result.size - targetBytes) < targetBytes * 0.05) {
+                        break;
+                    }
+                    if (bestBlob && bestSize <= targetBytes && bestSize > targetBytes * 0.8) {
+                        break;
+                    }
+                }
+
+                if (!bestBlob || bestSize > targetBytes) {
+                    const result = await buildPDFFromCanvases(canvases, 0.03, pageCount);
+                    if (result.size < bestSize) {
+                        bestBlob = result.blob;
+                        bestSize = result.size;
+                        bestQuality = 0.03;
+                    }
+                }
+
+                if (!bestBlob) {
+                    throw new Error('Could not compress PDF to target size.');
+                }
+
+                return {
+                    blob: bestBlob,
+                    size: bestSize,
+                    originalSize: arrayBuffer.byteLength,
+                    quality: bestQuality,
+                    skipped: false,
+                };
+            }
+
+            // ── Process all files ──
+
+            async function processAllFilesPdf() {
+                if (isProcessingPdf) return;
+                if (pdfFiles.length === 0) {
+                    alert('Please upload at least one PDF file.');
+                    return;
+                }
+
+                const targetKB = parseInt(targetSizePdf.value, 10);
+                // Enforce minimum 270 KB
+                if (isNaN(targetKB) || targetKB < 270) {
+                    alert('Target size must be at least 270 KB.');
+                    return;
+                }
+
+                const hasReady = pdfFiles.some(f => f.status === 'ready' || f.status === 'error');
+                if (!hasReady) {
+                    const allDone = pdfFiles.every(f => f.status === 'done');
+                    if (allDone) {
+                        pdfFiles.forEach(f => {
+                            f.status = 'ready';
+                            f.compressedBlob = null;
+                            f.compressedSize = null;
+                            f.skipped = false;
+                        });
+                        renderFileListPdf();
+                    } else {
+                        alert('All files are already processed or in progress.');
+                        return;
+                    }
+                }
+
+                isProcessingPdf = true;
+                compressBtnPdf.disabled = true;
+                progressWrapPdf.classList.add('active');
+                progressFillPdf.style.width = '0%';
+                progressLabelPdf.textContent = 'Starting…';
+                progressPercentPdf.textContent = '0%';
+
+                const total = pdfFiles.filter(f => f.status === 'ready' || f.status === 'error').length;
+                let completed = 0;
+
+                for (let i = 0; i < pdfFiles.length; i++) {
+                    const f = pdfFiles[i];
+                    if (f.status === 'done') {
+                        completed++;
+                        continue;
+                    }
+
+                    f.status = 'processing';
+                    renderFileListPdf();
+                    updateProgressPdf(completed, total, `Compressing "${f.name}"…`);
+
+                    try {
+                        const result = await compressPDFFile(f.file, targetKB);
+                        f.compressedBlob = result.blob;
+                        f.compressedSize = result.size;
+                        f.status = 'done';
+                        f.skipped = result.skipped || false;
+                    } catch (err) {
+                        f.status = 'error';
+                        f.compressedBlob = null;
+                        f.compressedSize = null;
+                        f.skipped = false;
+                        console.error(`Error compressing "${f.name}":`, err);
+                    }
+
+                    completed++;
+                    renderFileListPdf();
+                    updateProgressPdf(completed, total, `Processed ${completed}/${total}`);
+                }
+
+                progressFillPdf.style.width = '100%';
+                progressLabelPdf.textContent = '✅ All done!';
+                progressPercentPdf.textContent = '100%';
+
+                isProcessingPdf = false;
+                updateButtonsPdf();
+
+                setTimeout(() => {
+                    if (!isProcessingPdf) {
+                        progressWrapPdf.classList.remove('active');
+                    }
+                }, 3000);
+
+                const failed = pdfFiles.filter(f => f.status === 'error');
+                if (failed.length > 0) {
+                    alert(
+                        `${failed.length} file(s) failed to compress. Please check the console for details or try with a different PDF.`);
+                }
+            }
+
+            function updateProgressPdf(completed, total, label) {
+                const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+                progressFillPdf.style.width = Math.min(pct, 100) + '%';
+                progressLabelPdf.textContent = label || 'Processing…';
+                progressPercentPdf.textContent = Math.min(pct, 100) + '%';
+            }
+
+            compressBtnPdf.addEventListener('click', processAllFilesPdf);
+
+            targetSizePdf.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    compressBtnPdf.click();
+                }
+            });
+
+            // init
+            renderFileListPdf();
+            updateButtonsPdf();
+
+        })();
+    </script>
+
+</body>
+</html>
